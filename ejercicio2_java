@@ -1,0 +1,147 @@
+import java.io.*;
+import java.util.*;
+
+// Excepción personalizado
+class EdadInvalidaException extends Exception {
+    public EdadInvalidaException(String mensaje) {
+        super(mensaje);
+    }
+}
+
+// Clase abstracta Persona
+abstract class Persona implements Serializable {
+    protected String nombre;
+    protected int edad;
+
+    public Persona(String nombre, int edad) throws EdadInvalidaException {
+        if (edad < 0) throw new EdadInvalidaException("La edad no puede ser negativa.");
+        this.nombre = nombre;
+        this.edad = edad;
+    }
+
+    public abstract void mostrarInfo();
+
+    public String getNombre() { return nombre; }
+    public int getEdad() { return edad; }
+}
+
+// Clase Estudiante
+class Estudiante extends Persona {
+    private String carrera;
+    private int materiasAprobadas;
+    
+    //constructor
+    public Estudiante(String nombre, int edad, String carrera, int materiasAprobadas) throws EdadInvalidaException {
+        super(nombre, edad);
+        this.carrera = carrera;
+        this.materiasAprobadas = materiasAprobadas;
+    }
+
+    public boolean estaPorGraduarse() {
+        return materiasAprobadas >= 40;
+    }
+
+    @Override
+    public void mostrarInfo() {
+        System.out.println("Estudiante: " + nombre + ", Edad: " + edad + ", Carrera: " + carrera + ", Materias aprobadas: " + materiasAprobadas);
+    }
+}
+
+// Clase Docente
+class Docente extends Persona {
+    private String materiaAsignada;
+    private double salario;
+
+    public Docente(String nombre, int edad, String materiaAsignada, double salario) throws EdadInvalidaException {
+        super(nombre, edad);
+        this.materiaAsignada = materiaAsignada;
+        this.salario = salario;
+    }
+
+    public double calcularSalarioConBono(double bono) {
+        return salario + bono;
+    }
+
+    @Override
+    public void mostrarInfo() {
+        System.out.println("Docente: " + nombre + ", Edad: " + edad + ", Materia: " + materiaAsignada + ", Salario: " + salario);
+    }
+}
+
+// FactoryPersona
+class PersonaFactory {
+    public static Persona crearPersona(String tipo, String nombre, int edad, String extra, int materiasO salario) throws EdadInvalidaException {
+        if ("estudiante".equalsIgnoreCase(tipo)) {
+            return new Estudiante(nombre, edad, extra, materiasO);
+        } else if ("docente".equalsIgnoreCase(tipo)) {
+            return new Docente(nombre, edad, extra, materiasO);
+        } else {
+            throw new IllegalArgumentException("Tipo de persona no válido");
+        }
+    }
+}
+
+// Singleton RegistroAcademico
+class RegistroAcademico {
+    private static RegistroAcademico instancia;
+    private List<Persona> personas;
+
+    private RegistroAcademico() {
+        personas = new ArrayList<>();
+    }
+
+    public static RegistroAcademico getInstancia() {
+        if (instancia == null) instancia = new RegistroAcademico();
+        return instancia;
+    }
+
+    public void agregarPersona(Persona p) {
+        personas.add(p);
+    }
+
+    public void mostrarTodos() {
+        for (Persona p : personas) {
+            p.mostrarInfo();
+        }
+    }
+
+    public void guardarArchivo(String ruta) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ruta))) {
+            out.writeObject(personas);
+        }
+    }
+
+    public void cargarArchivo(String ruta) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(ruta))) {
+            personas = (List<Persona>) in.readObject();
+        }
+    }
+}
+
+// Clase Principal
+public class Main {
+    public static void main(String[] args) {
+        RegistroAcademico registro = RegistroAcademico.getInstancia();
+
+        try {
+            Persona e = PersonaFactory.crearPersona("estudiante", "Luis", 22, "Ingeniería", 42);
+            Persona d = PersonaFactory.crearPersona("docente", "Ana", 45, "Matemáticas", 3000);
+
+            registro.agregarPersona(e);
+            registro.agregarPersona(d);
+
+            registro.mostrarTodos();
+
+            registro.guardarArchivo("registro.dat");
+            System.out.println("Archivo guardado.");
+
+            registro.cargarArchivo("registro.dat");
+            System.out.println("Archivo cargado.");
+
+            registro.mostrarTodos();
+
+        } catch (Exception ex) {
+            System.out.println("Error: " + ex.getMessage());
+        }
+    }
+}
