@@ -1,0 +1,128 @@
+import java.io.*;
+import java.util.*;
+
+// Excepción personalizada
+class RegistroNoDisponibleException extends Exception {
+    public RegistroNoDisponibleException(String mensaje) {
+        super(mensaje);
+    }
+}
+
+// Clase Registro Médico
+class Registro implements Serializable {
+    private String paciente;
+    private String diagnostico;
+    private boolean disponible;
+
+    public Registro(String paciente, String diagnostico) {
+        this.paciente = paciente;
+        this.diagnostico = diagnostico;
+        this.disponible = true;
+    }
+
+    public boolean isDisponible() {
+        return disponible;
+    }
+
+    public void asignar() throws RegistroNoDisponibleException {
+        if (!disponible)
+            throw new RegistroNoDisponibleException("El registro de " + paciente + " ya está asignado.");
+        disponible = false;
+    }
+
+    public void liberar() {
+        disponible = true;
+    }
+
+    public String getPaciente() { return paciente; }
+    public String getDiagnostico() { return diagnostico; }
+}
+
+// Clase Usuario Médico
+class Usuario {
+    private String nombre;
+    private String tipo; // "medico" o "administrador"
+
+    public Usuario(String nombre, String tipo) {
+        this.nombre = nombre;
+        this.tipo = tipo;
+    }
+
+    public boolean esAdministrador() {
+        return "administrador".equalsIgnoreCase(tipo);
+    }
+
+    public String getNombre() { return nombre; }
+}
+
+// Singleton Historia Clínica
+class HistoriaClinica {
+    private static HistoriaClinica instancia;
+    private List<Registro> registros;
+
+    private HistoriaClinica() {
+        registros = new ArrayList<>();
+    }
+
+    public static HistoriaClinica getInstancia() {
+        if (instancia == null) instancia = new HistoriaClinica();
+        return instancia;
+    }
+
+    public void agregarRegistro(Registro registro) {
+        registros.add(registro);
+    }
+
+    public void asignarRegistro(Registro registro) throws RegistroNoDisponibleException {
+        registro.asignar();
+    }
+
+    public void serializarRegistros(String rutaArchivo) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(rutaArchivo))) {
+            out.writeObject(registros);
+        }
+    }
+
+    public void deserializarRegistros(String rutaArchivo) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(rutaArchivo))) {
+            registros = (List<Registro>) in.readObject();
+        }
+    }
+
+    public List<Registro> getRegistros() {
+        return registros;
+    }
+}
+
+// Clase Principal
+public class Main {
+    public static void main(String[] args) {
+        HistoriaClinica clinica = HistoriaClinica.getInstancia();
+        Usuario medico = new Usuario("Dr. Torres", "medico");
+        Registro registro = new Registro("Juan Pérez", "Fiebre y tos");
+
+        clinica.agregarRegistro(registro);
+
+        try {
+            clinica.asignarRegistro(registro);
+            System.out.println("Registro asignado.");
+            clinica.asignarRegistro(registro); // vuelve a asignar → excepción
+        } catch (RegistroNoDisponibleException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+
+        try {
+            clinica.serializarRegistros("registros.dat");
+            System.out.println("Registros serializados.");
+        } catch (IOException e) {
+            System.out.println("Error serializando: " + e.getMessage());
+        }
+
+        try {
+            clinica.deserializarRegistros("registros.dat");
+            System.out.println("Registros deserializados.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error deserializando: " + e.getMessage());
+        }
+    }
+}
