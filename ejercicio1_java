@@ -1,0 +1,103 @@
+import java.io.*;
+import java.util.*;
+
+class Animal implements Serializable {
+    private String nombre, especie;
+    private int cantidad;
+
+    public Animal(String nombre, String especie, int cantidad) {
+        this.nombre = nombre;
+        this.especie = especie;
+        this.cantidad = cantidad;
+    }
+
+    // Getters y setters omitidos por brevedad
+}
+
+class Zoologico implements Serializable {
+    private int idZoo;
+    private String nombre;
+    private List<Animal> animales;
+
+    public Zoologico(int idZoo, String nombre) {
+        this.idZoo = idZoo;
+        this.nombre = nombre;
+        this.animales = new ArrayList<>();
+    }
+
+    public int getIdZoo() { return idZoo; }
+    public int getNroAnimales() { return animales.size(); }
+
+    public void agregarAnimal(Animal a) {
+        animales.add(a);
+    }
+
+    public void mostrar() {
+        System.out.println("Zoo: " + nombre + " (ID: " + idZoo + ")");
+        for (Animal a : animales)
+            System.out.println("  - " + a);
+    }
+
+    // Otros getters/setters
+}
+
+class ArchZoo {
+    private String nomArch = "ArchZoo.dat";
+
+    public void crear(Zoologico z) throws IOException {
+        List<Zoologico> lista = cargarTodos();
+        lista.add(z);
+        guardarTodos(lista);
+    }
+
+    public void modificar(int id, Zoologico nuevoZoo) throws IOException {
+        List<Zoologico> lista = cargarTodos();
+        for (int i = 0; i < lista.size(); i++) {
+            if (lista.get(i).getIdZoo() == id) {
+                lista.set(i, nuevoZoo);
+                break;
+            }
+        }
+        guardarTodos(lista);
+    }
+
+    public void eliminar(int id) throws IOException {
+        List<Zoologico> lista = cargarTodos();
+        lista.removeIf(z -> z.getIdZoo() == id);
+        guardarTodos(lista);
+    }
+
+    public void listarMayorVariedad() throws IOException {
+        List<Zoologico> lista = cargarTodos();
+        int max = lista.stream()
+                       .mapToInt(Zoologico::getNroAnimales)
+                       .max()
+                       .orElse(0);
+        System.out.println("Zoológicos con mayor variedad:");
+        for (Zoologico z : lista) {
+            if (z.getNroAnimales() == max) {
+                z.mostrar();
+            }
+        }
+    }
+
+    public void listarVaciosYEliminar() throws IOException {
+        List<Zoologico> lista = cargarTodos();
+        lista.removeIf(z -> z.getNroAnimales() == 0);
+        guardarTodos(lista);
+    }
+
+    private List<Zoologico> cargarTodos() {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(nomArch))) {
+            return (List<Zoologico>) in.readObject();
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private void guardarTodos(List<Zoologico> lista) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(nomArch))) {
+            out.writeObject(lista);
+        }
+    }
+}
