@@ -1,0 +1,130 @@
+import java.io.*;
+import java.util.*;
+
+// Excepción personalizada
+class LibroNoDisponibleException extends Exception {
+    public LibroNoDisponibleException(String mensaje) {
+        super(mensaje);
+    }
+}
+
+// Clase Libro
+class Libro implements Serializable {
+    private String titulo;
+    private String autor;
+    private boolean disponible;
+
+    public Libro(String titulo, String autor) {
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponible = true;
+    }
+
+    public boolean isDisponible() {
+        return disponible;
+    }
+
+    public void prestar() throws LibroNoDisponibleException {
+        if (!disponible)
+            throw new LibroNoDisponibleException("El libro '" + titulo + "' no está disponible.");
+        disponible = false;
+    }
+
+    public void devolver() {
+        disponible = true;
+    }
+
+    public String getTitulo() { return titulo; }
+    public String getAutor() { return autor; }
+}
+
+// Clase Usuario
+class Usuario {
+    private String nombre;
+    private String tipo; // "lector" o "administrador"
+
+    public Usuario(String nombre, String tipo) {
+        this.nombre = nombre;
+        this.tipo = tipo;
+    }
+
+    public boolean esAdministrador() {
+        return "administrador".equalsIgnoreCase(tipo);
+    }
+
+    public String getNombre() { return nombre; }
+}
+
+// Singleton Biblioteca
+class Biblioteca {
+    private static Biblioteca instancia;
+    private List<Libro> libros;
+
+    private Biblioteca() {
+        libros = new ArrayList<>();
+    }
+
+    public static Biblioteca getInstancia() {
+        if (instancia == null) instancia = new Biblioteca();
+        return instancia;
+    }
+
+    public void agregarLibro(Libro libro) {
+        libros.add(libro);
+    }
+
+    public void prestarLibro(Libro libro) throws LibroNoDisponibleException {
+        libro.prestar();
+    }
+
+    public void serializarLibros(String rutaArchivo) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(rutaArchivo))) {
+            out.writeObject(libros);
+        }
+    }
+
+    public void deserializarLibros(String rutaArchivo) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(rutaArchivo))) {
+            libros = (List<Libro>) in.readObject();
+        }
+    }
+
+    public List<Libro> getLibros() {
+        return libros;
+    }
+}
+
+// Clase Principal para probar el sistema
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca biblioteca = Biblioteca.getInstancia();
+        Usuario admin = new Usuario("Ana", "administrador");
+        Libro libro1 = new Libro("Cien años de soledad", "Gabriel García Márquez");
+
+        biblioteca.agregarLibro(libro1);
+
+        try {
+            biblioteca.prestarLibro(libro1);
+            System.out.println("Préstamo exitoso.");
+            biblioteca.prestarLibro(libro1); // segunda vez → lanza excepción
+        } catch (LibroNoDisponibleException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+
+        // Serialización
+        try {
+            biblioteca.serializarLibros("libros.dat");
+            System.out.println("Libros serializados.");
+        } catch (IOException e) {
+            System.out.println("Error serializando: " + e.getMessage());
+        }
+
+        // Deserialización
+        try {
+            biblioteca.deserializarLibros("libros.dat");
+            System.out.println("Libros deserializados.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error deserializando: " + e.getMessage());
+        }
+    }
+}
